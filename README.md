@@ -1,6 +1,6 @@
 # Discord Multitool Selfbot
 
-A Node.js selfbot script that lets you run Discord where **everyone gets banned, kicked, or timed out** — except for your dontTouchTheseUsers const. At the end of the event, a message will be sent, you can customize this
+A Node.js selfbot script that lets you run Discord where **everyone gets banned, kicked, or timed out** — except for your dontTouchTheseUsers const. When done with everything, a message will be sent, you can customize this
 
 > ⚠️ This tool uses a **user token**, which is against Discord's Terms of Service. Use only in private/affiliated servers with full understanding of the risks.
 
