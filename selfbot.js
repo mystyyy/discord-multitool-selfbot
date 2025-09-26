@@ -1,20 +1,54 @@
 const { Client } = require('discord.js-selfbot-v13');
 const readline = require('readline-sync');
 
-// ========= CONFIG =========
-const token = '-replace me-'; //discord token, log in to discord on web and use ethone token helper extension
-const guildId = 'GUILDID'; // right click the server u want and do copy id
-const dontTouchTheseUsers = ['UserId']; // you can add more here, for example ['userid', 'userid2']
-const timeoutDurationMs = 7 * 24 * 60 * 60 * 1000; // 7 days (max timeout)
-const messageDone = 'Change Me' // message ur acc will send when the thing u did is done
-// ==========================
+console.clear();
+console.log('===============================');
+console.log('✨ Welcome to Mysty\'s Selfbot Tool ✨');
+console.log('===============================\n');
+
+const guildId = readline.question('1) What guild ID?\n> ');
+
+console.log('\n2) Would you like to:\n1 = Kick users\n2 = Ban users\n3 = Timeout users');
+const actionChoice = readline.question('> ');
+
+let banReason = 'Banned by Mysty\'s Selfbot';
+if (actionChoice === '2') {
+    banReason = readline.question('\n3) What should the ban reason be?\n> ');
+}
+
+console.log('\n4) Should there be any users not to touch?\n1 = Yes\n2 = No');
+const skipChoice = readline.question('> ');
+
+let dontTouchTheseUsers = [];
+if (skipChoice === '1') {
+    const userCount = parseInt(readline.question('\n4.5) How many users not to touch? (max 10)\n> '));
+    for (let i = 0; i < Math.min(userCount, 10); i++) {
+        const userId = readline.question(`4.UserData${i + 1}) Enter User ID ${i + 1}\n> `);
+        dontTouchTheseUsers.push(userId.trim());
+    }
+}
+
+console.log('\n5) Do you want to send a message in every channel when done?\n1 = Yes\n2 = No');
+const sendMessageChoice = readline.question('> ');
+
+let messageDone = '';
+if (sendMessageChoice === '1') {
+    messageDone = readline.question('\n6) What message to send?\n> ');
+}
+
+const token = readline.question('\n Paste your Discord user token (input hidden):\n> ', { hideEchoBack: true });
+const timeoutDurationMs = 7 * 24 * 60 * 60 * 1000;
 
 const client = new Client();
 
 client.on('ready', async () => {
-    console.log(`Logged in as ${client.user.tag}`);
+    console.log(`\n Logged in as ${client.user.tag}`);
 
-    const guild = await client.guilds.fetch(guildId);
+    const guild = await client.guilds.fetch(guildId).catch(err => {
+        console.error(` Failed to fetch guild: ${err.message}`);
+        process.exit(1);
+    });
+
     await guild.members.fetch();
 
     const membersToActOn = guild.members.cache.filter(member =>
@@ -23,64 +57,59 @@ client.on('ready', async () => {
         !member.user.bot
     );
 
-    console.log(`\nServer: ${guild.name}`);
-    console.log(`Total eligible members: ${membersToActOn.size}`);
-    console.log('\nChoose an action:\n');
-    console.log('1) Ban Users');
-    console.log('2) Timeout Users (1 week)');
-    console.log('3) Kick Users\n');
+    console.log(`\n Server: ${guild.name}`);
+    console.log(` Total affected members: ${membersToActOn.size}\n`);
 
-    const choice = readline.question('Enter option number (1/2/3): ');
-
-    switch (choice.trim()) {
+    switch (actionChoice) {
         case '1':
-            await banUsers(membersToActOn);
+            console.log('Thanks for using Mysty\'s Selfbot Tool, sending kicks...\n');
+            await kickUsers(membersToActOn);
+            console.log('\n Done sending kicks.');
             break;
         case '2':
-            await timeoutUsers(membersToActOn);
+            console.log('Thanks for using Mysty\'s Selfbot Tool, sending bans...\n');
+            await banUsers(membersToActOn, banReason);
+            console.log('\n Done sending bans.');
             break;
         case '3':
-            await kickUsers(membersToActOn);
+            console.log('Thanks for using Mysty\'s Selfbot Tool, sending timeouts...\n');
+            await timeoutUsers(membersToActOn);
+            console.log('\n Done sending timeouts.');
             break;
         default:
-            console.log('Invalid option.');
+            console.log(' Invalid action. Exiting.');
             process.exit(1);
     }
 
-    // message stuff
-    try {
-        const general = guild.channels.cache.find(c =>
-            c.name.includes('general') && c.isText()
-        ) || guild.systemChannel;
-
-        if (general) {
-            const dontTouchTheseUsersping = dontTouchTheseUsers.map(id => `<@${id}>`).join(' ');
-            await general.send(messageDone);
-            console.log('message sent!');
-        } else {
-            console.log('could not find general or system channel to send message.');
+    if (sendMessageChoice === '1' && messageDone) {
+        for (const [id, channel] of guild.channels.cache) {
+            if (channel.isText() && channel.viewable && channel.permissionsFor(guild.me ?? client.user)?.has('SEND_MESSAGES')) {
+                try {
+                    await channel.send(messageDone);
+                    console.log(` Sent message in #${channel.name}`);
+                } catch (err) {
+                    console.log(` Could not send in #${channel.name}: ${err.message}`);
+                }
+            }
         }
-    } catch (err) {
-        console.error('Failed to send message:', err.message);
     }
 
+    console.log('\n Finished.');
     process.exit(0);
 });
 
-async function banUsers(members) {
-    console.log('\n Banning users...');
+async function banUsers(members, reason) {
     for (const [id, member] of members) {
         try {
-            await member.ban({ reason: 'Banned LOOL' });
+            await member.ban({ reason });
             console.log(`Banned ${member.user.tag}`);
         } catch (err) {
-            console.log(`Could not ban ${member.user.tag}: ${err.message}`);
+            console.log(` Could not ban ${member.user.tag}: ${err.message}`);
         }
     }
 }
 
 async function timeoutUsers(members) {
-    console.log('\n Timing out users...');
     for (const [id, member] of members) {
         try {
             await member.disableCommunicationUntil(Date.now() + timeoutDurationMs);
@@ -92,13 +121,12 @@ async function timeoutUsers(members) {
 }
 
 async function kickUsers(members) {
-    console.log('\n Kicking users...');
     for (const [id, member] of members) {
         try {
-            await member.kick('KICKED LOOOL');
-            console.log(`Kicked ${member.user.tag}`);
+            await member.kick('Kicked by Mysty\'s Selfbot');
+            console.log(` Kicked ${member.user.tag}`);
         } catch (err) {
-            console.log(`Could not kick ${member.user.tag}: ${err.message}`);
+            console.log(` Could not kick ${member.user.tag}: ${err.message}`);
         }
     }
 }
