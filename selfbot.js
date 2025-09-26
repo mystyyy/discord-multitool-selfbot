@@ -3,8 +3,10 @@ const readline = require('readline-sync');
 
 console.clear();
 console.log('===============================');
-console.log('✨ Welcome to Mysty\'s Selfbot Tool ✨');
+console.log('✨ Welcome to Mysty\'s Selfbot Tool ✨'); 
 console.log('===============================\n');
+
+// ⚠️⚠️⚠️⚠️⚠️⚠️THIS IS FOR EDUCATIONAL PURPOSES ONLY⚠️⚠️⚠️⚠️⚠️⚠️
 
 const guildId = readline.question('1) What guild ID?\n> ');
 
